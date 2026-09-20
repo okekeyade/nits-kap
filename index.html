@@ -396,25 +396,25 @@
 
 <script>
 const CAGES = {
-  1: { name:"生け簀 1", score:88, status:"good", statusLabel:"良好", feedTrend:"良好", lastObs:"13:05",
+  1: { name:"生け簀 1", score:88, status:"good", statusLabel:"良好", feedTrend:"良好", obsAgoMin:87,
        trend:[86,85,87,88,88,89,88], sub:{feed:84,swim:90,look:91,water:86},
        diffNote:"前回比 +2pt", envNote:"水温・溶存酸素ともに安定域",
        feedPct:"通常どおり", feedNote:"良好な摂餌反応が続いており、給餌量の調整は不要",
        mixPct:"標準配合を継続", mixNote:"現状の配合バランスで健康状態は良好",
        confidence:"高" },
-  2: { name:"生け簀 2", score:81, status:"good", statusLabel:"良好", feedTrend:"やや良好", lastObs:"13:38",
+  2: { name:"生け簀 2", score:81, status:"good", statusLabel:"良好", feedTrend:"やや良好", obsAgoMin:54,
        trend:[79,80,79,82,81,82,81], sub:{feed:78,swim:84,look:85,water:79},
        diffNote:"前回比 +1pt", envNote:"水温はやや高めだが許容範囲内",
        feedPct:"通常比 −2%", feedNote:"軽微な食べ残し傾向を検知、微調整を提案",
        mixPct:"標準配合を継続", mixNote:"配合変更の必要性は低い",
        confidence:"高" },
-  3: { name:"生け簀 3", score:72, status:"warn", statusLabel:"要注意", feedTrend:"やや低下", lastObs:"14:32（観測中）",
+  3: { name:"生け簀 3", score:72, status:"warn", statusLabel:"要注意", feedTrend:"やや低下", obsAgoMin:0,
        trend:[84,81,79,77,75,73,72], sub:{feed:58,swim:75,look:83,water:64},
        diffNote:"前回比 -9pt", envNote:"水温上昇と溶存酸素低下を検知",
        feedPct:"通常比 −8%", feedNote:"摂餌反応の低下を検知したため、食べ残しを抑制",
        mixPct:"高消化タンパク配合 +15%", mixNote:"水温上昇時の消化負担を軽減する配合バランスを提案",
        confidence:"中（現場データによる継続検証が必要）" },
-  4: { name:"生け簀 4", score:85, status:"good", statusLabel:"良好", feedTrend:"良好", lastObs:"12:20",
+  4: { name:"生け簀 4", score:85, status:"good", statusLabel:"良好", feedTrend:"良好", obsAgoMin:132,
        trend:[83,84,83,85,84,86,85], sub:{feed:82,swim:87,look:88,water:83},
        diffNote:"前回比 +1pt", envNote:"環境データは全項目で安定",
        feedPct:"通常どおり", feedNote:"摂餌反応・成長ともに順調",
@@ -423,6 +423,15 @@ const CAGES = {
 };
 
 const FARM = { name:"浦崎水産", area:"佐世保市 沖合A漁場", fish:"クロマグロ" };
+
+// 最終観測は「現在から何分前か」(obsAgoMin)で持ち、月日つきで表示する。
+// 固定の時刻だと、ヘッダーの現在時刻より未来の観測になってしまうため。0分前は観測中。
+function obsLabel(c){
+  const t = new Date(Date.now() - c.obsAgoMin * 60000);
+  const hh = String(t.getHours()).padStart(2, '0');
+  const mm = String(t.getMinutes()).padStart(2, '0');
+  return `${t.getMonth()+1}月${t.getDate()}日 ${hh}:${mm}` + (c.obsAgoMin === 0 ? '（観測中）' : '');
+}
 
 function statusColor(status){
   if(status==="good") return getCssVar('--good');
@@ -488,7 +497,7 @@ function renderCageGrid(){
       </div>
       <div class="cage-sub">
         摂餌反応：<b>${c.feedTrend}</b><br>
-        最終観測：<b>${c.lastObs}</b>
+        最終観測：<b>${obsLabel(c)}</b>
       </div>
     </div>`;
   });
@@ -584,7 +593,7 @@ function showDetail(id){
   const c = CAGES[id];
   if(!c) return;
   document.getElementById('d-name').textContent = c.name;
-  document.getElementById('d-meta').textContent = `${FARM.area} ・ 魚種：${FARM.fish} ・ 最終観測：${c.lastObs}`;
+  document.getElementById('d-meta').textContent = `${FARM.area} ・ 魚種：${FARM.fish} ・ 最終観測：${obsLabel(c)}`;
 
   const color = c.status==='good' ? 'var(--good)' : 'var(--warn)';
   document.getElementById('ring-svg').innerHTML = ringSVG(c.score, 150, 14, color, true);
