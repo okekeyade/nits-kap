@@ -367,7 +367,7 @@
 
     <div class="panel trend-panel" style="margin-bottom:18px;">
       <h3>直近7日間の健康スコア推移</h3>
-      <svg id="trend-svg" viewBox="0 0 640 160" preserveAspectRatio="none"></svg>
+      <svg id="trend-svg" viewBox="0 0 640 160"></svg>
     </div>
 
     <div class="advice-card">
@@ -559,8 +559,9 @@ function barsHTML(sub){
   }).join('');
 }
 
-function trendSVG(trend){
-  const w = 640, h = 160, pad = 24;
+// w は表示幅(px)。viewBoxを実寸に合わせるので、文字や点が引き伸ばされない。
+function trendSVG(trend, w){
+  const h = 160, pad = 32;
   const min = Math.min(...trend) - 4, max = Math.max(...trend) + 4;
   const stepX = (w - pad*2) / (trend.length - 1);
   const points = trend.map((v,i)=>{
@@ -573,8 +574,8 @@ function trendSVG(trend){
   const days = ['6日前','5日前','4日前','3日前','2日前','昨日','本日'];
   const dots = points.map((p,i)=>`
     <circle cx="${p[0]}" cy="${p[1]}" r="4" fill="var(--accent)" />
-    <text x="${p[0]}" y="${h-4}" font-size="10" fill="var(--text-sub)" text-anchor="middle">${days[i]}</text>
-    <text x="${p[0]}" y="${p[1]-10}" font-size="11" font-weight="700" fill="var(--text)" text-anchor="middle">${trend[i]}</text>
+    <text x="${p[0]}" y="${h-4}" font-size="11" fill="var(--text-sub)" text-anchor="middle">${days[i]}</text>
+    <text x="${p[0]}" y="${p[1]-10}" font-size="12" font-weight="700" fill="var(--text)" text-anchor="middle">${trend[i]}</text>
   `).join('');
   return `
     <defs>
@@ -587,6 +588,15 @@ function trendSVG(trend){
     <path d="${pathD}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
     ${dots}
   `;
+}
+
+let currentTrend = null;
+function renderTrend(){
+  const svg = document.getElementById('trend-svg');
+  if(!currentTrend) return;
+  const w = Math.max(320, Math.round(svg.getBoundingClientRect().width));
+  svg.setAttribute('viewBox', `0 0 ${w} 160`);
+  svg.innerHTML = trendSVG(currentTrend, w);
 }
 
 function showDetail(id){
@@ -604,7 +614,7 @@ function showDetail(id){
   document.getElementById('d-comment').textContent = c.envNote;
 
   document.getElementById('bars').innerHTML = barsHTML(c.sub);
-  document.getElementById('trend-svg').innerHTML = trendSVG(c.trend);
+  currentTrend = c.trend;
 
   document.getElementById('d-feedpct').textContent = c.feedPct;
   document.getElementById('d-feednote').textContent = c.feedNote;
@@ -614,6 +624,7 @@ function showDetail(id){
 
   document.getElementById('screen-home').classList.remove('active');
   document.getElementById('screen-detail').classList.add('active');
+  renderTrend(); // 画面を表示してから幅を測る(非表示中は幅が0になるため)
   window.scrollTo(0,0);
 }
 
@@ -624,6 +635,9 @@ function showHome(){
 }
 
 document.getElementById('back-btn').addEventListener('click', showHome);
+window.addEventListener('resize', ()=>{
+  if(document.getElementById('screen-detail').classList.contains('active')) renderTrend();
+});
 
 document.querySelectorAll('.summary-chip.filterable').forEach(chip=>{
   chip.addEventListener('click', ()=> setFilter(chip.dataset.filter));
